@@ -1,84 +1,80 @@
+import os
+from flask import Flask
+from threading import Thread
 import discord
-from discord.ext import tasks, commands
+from discord.ext import commands, tasks
 import requests
 
-TOKEN = 'MTU2MTIwMjUxOTkxNTM3MjYyNA.Ga_vNV.hdwDBrr-s6nWXEwGeu4olcVJW8Wl2uLUPw5Q50'
+# Servidor web ficticio para mantener el bot despierto 24/7 en Render
+app = Flask('')
 
-CLAN_JUGADORES = [
-    {"nombre": "TdB.Red Matador", "profile_id": 11520176},
+@app.route('/')
+def home():
+    return "¡Bot en vivo 24/7!"
+
+def run():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+keep_alive()
+
+# --- CÓDIGO DE TU BOT DE DISCORD ---
+
+TOKEN = 'PON_AQUI_TU_TOKEN_REAL'
+
+JUGADORES_DE_CLAN = [
+    {"nombre": "TdB. Matador Rojo", "id_perfil": 11520176},
 ]
 
-intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+intenciones = discord.Intents.default()
+intenciones.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intenciones)
 
 def obtener_datos_leaderboard():
-    headers = {
+    encabezados = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     resultados = []
     try:
-        for jugador in CLAN_JUGADORES:
-            p_id = jugador["profile_id"]
-            url_profile = f"https://data.aoe2companion.com/api/leaderboards?game=aoe2de&leaderboard_id=3&profile_ids={p_id}"
-            resp = requests.get(url_profile, headers=headers, timeout=8)
+        for jugador in JUGADORES_DE_CLAN:
+            p_id = jugador["id_perfil"]
+            perfil_url = f"https://data.aoe2companion.com/api/leaderboards?game=aoe2de&leaderboard_id=3&profile_ids={p_id}"
+            resp = requests.get(perfil_url, headers=encabezados, timeout=8)
             
             if resp.status_code == 200:
-                data = resp.json()
-                players = data if isinstance(data, list) else data.get("players", data.get("leaderboard", []))
+                datos = resp.json()
+                jugadores = datos if isinstance(datos, list) else datos.get("players", datos.get("classification", []))
                 
-                for p in players:
-                    if str(p.get("profile_id", p.get("profileId"))) == str(p_id):
+                for pag in jugadores:
+                    if str(pag.get("profile_id", pag.get("ID de perfil"))) == str(p_id):
                         resultados.append({
                             "nombre": jugador["nombre"],
-                            "rank": p.get("rank", 20),
-                            "elo": p.get("rating", 1513),
-                            "streak": p.get("streak", 0)
+                            "rating": pag.get("rating", pag.get("Puntuación", "N/A")),
+                            "ranking": pag.get("rank", pag.get("Clasificación", "N/A"))
                         })
     except Exception as e:
-        print(f"Aviso al consultar leaderboard: {e}")
-        
+        print(f"Error al obtener datos: {e}")
     return resultados
-
-async def generar_embed_ranking():
-    datos = obtener_datos_leaderboard()
-    if not datos:
-        datos = [{"nombre": "TdB.Red Matador", "rank": 20, "elo": 1513, "streak": 0}]
-
-    datos.sort(key=lambda x: x["elo"], reverse=True)
-
-    lineas = []
-    for idx, j in enumerate(datos, start=1):
-        cambio_str = f"+{j['streak']}" if j['streak'] > 0 else (str(j['streak']) if j['streak'] < 0 else "  0")
-        lineas.append(f"{idx:2d} | {cambio_str:>3} | {j['elo']} | 🟢 {j['nombre']}")
-
-    texto_bloque = "\n".join(lineas)
-    
-    embed = discord.Embed(
-        title="🔥 1v1 Leaderboard - Regia Armata 🔥",
-        description=f"```ini\n{texto_bloque}\n```",
-        color=discord.Color.dark_theme()
-    )
-    embed.set_footer(text="Actualizado automáticamente desde estadísticas oficiales")
-    return embed
-
-@tasks.loop(hours=1)
-async def actualizar_leaderboard_automatico():
-    channel = discord.utils.get(bot.get_all_channels(), name="ranking-elo")
-    if not channel:
-        return
-    embed = await generar_embed_ranking()
-    await channel.send(embed=embed)
-
-@bot.command(name="elo")
-async def comando_elo(ctx):
-    embed = await generar_embed_ranking()
-    await ctx.send(embed=embed)
 
 @bot.event
 async def on_ready():
     print(f'¡Bot conectado con éxito como {bot.user}!')
-    if not actualizar_leaderboard_automatico.is_running():
-        actualizar_leaderboard_automatico.start()
+
+@bot.command(name='elo')
+async def elo(ctx):
+    datos = obtener_datos_leaderboard()
+    if not datos:
+        await ctx.send("No se pudieron obtener los datos en este momento.")
+        return
+    
+    mensaje = "**📊 Clasificación Elo - Regia Armata:**\n"
+    for j in datos:
+        mensaje += f"• **{j['nombre']}**: Elo `{j['rating']}` (Puesto #{j['ranking']})\n"
+    
+    await ctx.send(mensaje)
 
 bot.run(TOKEN)
