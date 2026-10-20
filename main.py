@@ -24,7 +24,7 @@ keep_alive()
 
 # --- CÓDIGO DE TU BOT DE DISCORD ---
 
-TOKEN = 'MTU2MTIwMjUxOTkxNTM3MjYyNA.Ga_vNV.hdwDBrr-s6nWXEwGeu4olcVJW8Wl2uLUPw5Q50'
+TOKEN = 'MTU2MTIwMjUxOTkxNTM3MjYyNA.Gtp1LP.9jegu4y2Vrj7rzv_zy6V4IBB7w_HWkS5hsU9mk'
 
 JUGADORES_DE_CLAN = [
     {"nombre": "TdB. Matador Rojo", "id_perfil": 11520176},
