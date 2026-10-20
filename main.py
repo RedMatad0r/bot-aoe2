@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 import requests
 
-# Servidor web para mantener el bot activo 24/7 en Render
 app = Flask('')
 
 @app.route('/')
@@ -23,20 +22,18 @@ def keep_alive():
 keep_alive()
 
 # --- CONFIGURACIÓN DEL BOT ---
-
-# Lee el token de forma segura desde las variables de entorno de Render
 TOKEN = os.environ.get('DISCORD_TOKEN')
 
 JUGADORES_DE_CLAN = [
     {"nombre": "TdB. Matador Rojo", "id_perfil": 11520176},
 ]
 
-intenciones = discord.Intents.default()
-intenciones.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intenciones)
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 def obtener_datos_leaderboard():
-    encabezados = {
+    headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     resultados = []
@@ -44,18 +41,18 @@ def obtener_datos_leaderboard():
         for jugador in JUGADORES_DE_CLAN:
             p_id = jugador["id_perfil"]
             perfil_url = f"https://data.aoe2companion.com/api/leaderboards?game=aoe2de&leaderboard_id=3&profile_ids={p_id}"
-            resp = requests.get(perfil_url, headers=encabezados, timeout=8)
+            resp = requests.get(perfil_url, headers=headers, timeout=8)
             
             if resp.status_code == 200:
                 datos = resp.json()
                 jugadores = datos if isinstance(datos, list) else datos.get("players", datos.get("classification", []))
                 
                 for pag in jugadores:
-                    if str(pag.get("profile_id", pag.get("ID de perfil"))) == str(p_id):
+                    if str(pag.get("profile_id", pag.get("ID"))) == str(p_id):
                         resultados.append({
                             "nombre": jugador["nombre"],
-                            "rating": pag.get("rating", pag.get("Puntuación", "N/A")),
-                            "ranking": pag.get("rank", pag.get("Clasificación", "N/A"))
+                            "rating": pag.get("rating", "N/A"),
+                            "ranking": pag.get("rank", "N/A")
                         })
     except Exception as e:
         print(f"Error al obtener datos: {e}")
