@@ -2,10 +2,10 @@ import os
 from flask import Flask
 from threading import Thread
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import requests
 
-# Servidor web ficticio para mantener el bot despierto 24/7 en Render
+# Servidor web para mantener el bot activo 24/7 en Render
 app = Flask('')
 
 @app.route('/')
@@ -22,9 +22,10 @@ def keep_alive():
 
 keep_alive()
 
-# --- CÓDIGO DE TU BOT DE DISCORD ---
+# --- CONFIGURACIÓN DEL BOT ---
 
-TOKEN = 'MTU2MTIwMjUxOTkxNTM3MjYyNA.Gtp1LP.9jegu4y2Vrj7rzv_zy6V4IBB7w_HWkS5hsU9mk'
+# Lee el token de forma segura desde las variables de entorno de Render
+TOKEN = os.environ.get('DISCORD_TOKEN')
 
 JUGADORES_DE_CLAN = [
     {"nombre": "TdB. Matador Rojo", "id_perfil": 11520176},
